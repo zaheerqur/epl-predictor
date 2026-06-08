@@ -3,6 +3,6 @@
 
 [[redirects]]
   from   = "/api/*"
-  to     = "https://epl-predictor-api.onrender.com/:splat"
+  to     = "https://epl-predictor-6euj.onrender.com/:splat"
   status = 200
   force  = true
