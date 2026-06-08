@@ -814,7 +814,7 @@
           </thead>
           <tbody>
             <tr v-for="row in table" :key="row.team">
-              <td><span class="pos-badge" :class="posCls(row.position)">{{ row.position }}</span></td>
+              <td><span class="pos-badge" :class="posCls(row.position, season)">{{ row.position }}</span></td>
               <td>
                 <div class="club-cell">
                   <div class="club-logo club-logo-sm" :style="logoStyle(row.team)">
@@ -841,9 +841,9 @@
         </table>
       </div>
       <div class="zone-legend">
-        <div class="zone-item"><div class="zone-dot" style="background:rgba(37,99,235,.6)"></div> Champions League</div>
+        <div class="zone-item"><div class="zone-dot" style="background:rgba(37,99,235,.6)"></div> Champions League ({{ parseInt(season.split('-')[0]) >= 2024 ? 'Top 5' : 'Top 4' }})</div>
         <div class="zone-item"><div class="zone-dot" style="background:rgba(234,88,12,.6)"></div> Europa League</div>
-        <div class="zone-item"><div class="zone-dot" style="background:rgba(147,51,234,.6)"></div> Conference League</div>
+        <div v-if="parseInt(season.split('-')[0]) >= 2021" class="zone-item"><div class="zone-dot" style="background:rgba(147,51,234,.6)"></div> Conference League</div>
         <div class="zone-item"><div class="zone-dot" style="background:rgba(220,38,38,.6)"></div> Relegation</div>
       </div>
     </div>
@@ -1322,11 +1322,15 @@ createApp({
     function vpClass(p) {
       return p === 'Home Win' ? 'verdict-pill vp-home' : p === 'Draw' ? 'verdict-pill vp-draw' : 'verdict-pill vp-away';
     }
-    function posCls(p) {
-      if (p <= 4)  return 'pos-badge pos-cl';
-      if (p === 5) return 'pos-badge pos-el';
-      if (p === 6) return 'pos-badge pos-ecl';
-      if (p >= 18) return 'pos-badge pos-rel';
+    function posCls(p, s) {
+      const yr = parseInt((s || '').split('-')[0]) || 0;
+      const clSpots = yr >= 2024 ? 5 : 4;
+      const elPos   = clSpots + 1;
+      const eclPos  = yr >= 2021 ? clSpots + 2 : null;
+      if (p <= clSpots)       return 'pos-badge pos-cl';
+      if (p === elPos)        return 'pos-badge pos-el';
+      if (eclPos && p === eclPos) return 'pos-badge pos-ecl';
+      if (p >= 18)            return 'pos-badge pos-rel';
       return 'pos-badge pos-def';
     }
     function pipeIcon(name) {
