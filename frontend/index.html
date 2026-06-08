@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EPL Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f6f7f9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --border2:   #cbd5e1;
+      --text:      #0f172a;
+      --sub:       #64748b;
+      --muted:     #94a3b8;
+      --accent:    #7c3aed;
+      --accent-bg: rgba(124,58,237,.07);
+      --win:       #16a34a;
+      --win-bg:    rgba(22,163,74,.09);
+      --draw:      #d97706;
+      --draw-bg:   rgba(217,119,6,.09);
+      --loss:      #dc2626;
+      --loss-bg:   rgba(220,38,38,.09);
+      --cl:        #2563eb;
+      --el:        #ea580c;
+      --ecl:       #9333ea;
+      --rel:       #dc2626;
+      --sh:        0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+      --sh-md:     0 4px 16px rgba(15,23,42,.09);
+      --r:         10px;
+    }
+
+    html, body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    /* ── Header ── */
+    header {
+      background: rgba(255,255,255,.96); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      height: 58px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; position: sticky; top: 0; z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: .95rem; letter-spacing: -.4px; color: var(--text);
+    }
+    .logo-mark {
+      width: 32px; height: 32px; border-radius: 6px; overflow: hidden; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    nav { display: flex; gap: 2px; }
+    .nav-btn {
+      background: none; border: none; color: var(--sub);
+      padding: 6px 14px; border-radius: 8px;
+      font-size: .84rem; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: color .12s, background .12s;
+    }
+    .nav-btn:hover { color: var(--text); background: var(--bg); }
+    .nav-btn.active { color: var(--text); font-weight: 700; background: var(--bg); }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* ── Notice ── */
+    .notice {
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: 3px solid var(--accent); border-radius: var(--r);
+      padding: .875rem 1.25rem; font-size: .84rem; color: var(--sub);
+      margin-bottom: 1.5rem;
+    }
+    .notice code { font-size: .78rem; background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+
+    /* ── Club Logo ── */
+    .club-logo {
+      position: relative; border-radius: var(--r);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; flex-shrink: 0;
+      background: #fff;
+    }
+    .club-logo img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: contain; padding: 10%; opacity: 0; transition: opacity .3s; z-index: 2;
+    }
+    .club-logo img.loaded { opacity: 1; }
+    .club-logo .abbr {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; letter-spacing: .5px; text-transform: uppercase;
+      background: var(--team-bg, #334155); color: var(--team-fg, #fff);
+      z-index: 1; transition: opacity .3s;
+    }
+    .club-logo img.loaded ~ .abbr { opacity: 0; }
+
+    /* ── PREDICT ── */
+    .predict-grid {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      gap: 1rem; align-items: stretch; margin-bottom: 1.25rem;
+    }
+    .team-picker {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1.25rem 1.25rem 1.1rem;
+      box-shadow: var(--sh);
+    }
+    .picker-label {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: .75rem;
+    }
+    .team-preview {
+      display: flex; align-items: center; gap: 10px; margin-bottom: .75rem; min-height: 40px;
+    }
+    .team-preview-logo { width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0; }
+    .team-preview-logo .abbr { font-size: .52rem; }
+    .team-preview-name { font-weight: 700; font-size: .95rem; color: var(--text); }
+    .team-select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 9px 12px;
+      font-size: .875rem; font-family: inherit; font-weight: 500;
+      cursor: pointer; outline: none; appearance: none;
+      transition: border-color .15s;
+    }
+    .team-select:focus { border-color: var(--accent); }
+
+    .vs-block {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    }
+    .vs-text { font-size: .75rem; font-weight: 800; color: var(--muted); }
+
+    /* H2H */
+    .h2h-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 1rem 1.25rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+      box-shadow: var(--sh); margin-bottom: 1.25rem;
+    }
+    .h2h-tag { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .h2h-stats { display: flex; gap: 1.5rem; }
+    .h2h-stat { text-align: center; }
+    .h2h-stat-n { font-size: 1.25rem; font-weight: 900; line-height: 1; }
+    .h2h-stat-l { font-size: .62rem; color: var(--muted); font-weight: 600; margin-top: 2px; }
+    .h2h-dots { display: flex; gap: 4px; align-items: center; margin-left: auto; }
+    .h2h-dot {
+      width: 24px; height: 24px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .65rem; font-weight: 800;
+    }
+
+    .predict-btn {
+      display: block; width: 100%; padding: 14px; border: none; border-radius: var(--r);
+      background: var(--text); color: #fff; font-size: .9rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; letter-spacing: -.01em;
+      transition: opacity .12s, transform .1s; margin-bottom: 1.25rem;
+    }
+    .predict-btn:hover:not(:disabled) { opacity: .85; }
+    .predict-btn:active { transform: scale(.99); }
+    .predict-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    .error-box {
+      background: var(--loss-bg); border: 1px solid rgba(220,38,38,.2);
+      color: var(--loss); border-radius: var(--r);
+      padding: .875rem 1.25rem; font-size: .84rem; margin-bottom: 1rem;
+    }
+
+    /* Result */
+    .result-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden; box-shadow: var(--sh-md);
+    }
+    .result-teams {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; gap: 1rem; padding: 2rem 1.5rem 1.5rem;
+    }
+    .result-team { display: flex; flex-direction: column; gap: 10px; }
+    .result-team.away { align-items: flex-end; }
+    .res-logo { width: 84px; height: 84px; border-radius: 16px; }
+    .res-logo .abbr { font-size: 1rem; }
+    .res-name { font-size: 1.05rem; font-weight: 800; letter-spacing: -.02em; }
+    .res-role { font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+    .result-verdict { text-align: center; }
+    .verdict-pill {
+      display: inline-block; padding: 7px 16px; border-radius: 100px;
+      font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+      margin-bottom: 8px;
+    }
+    .vp-home { background: var(--win-bg); color: var(--win); }
+    .vp-draw { background: var(--draw-bg); color: var(--draw); }
+    .vp-away { background: var(--loss-bg); color: var(--loss); }
+    .verdict-conf { font-size: .75rem; color: var(--muted); font-weight: 600; }
+
+    .sep { height: 1px; background: var(--border); }
+
+    .prob-section { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 12px; }
+    .prob-row { display: grid; grid-template-columns: 80px 1fr 54px; align-items: center; gap: 12px; }
+    .prob-name { font-size: .8rem; font-weight: 600; color: var(--sub); }
+    .prob-track { height: 7px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+    .prob-fill { height: 100%; border-radius: 4px; transition: width .7s cubic-bezier(.4,0,.2,1); }
+    .prob-pct { font-size: .875rem; font-weight: 800; text-align: right; }
+
+    .form-section { padding: 1.25rem 1.5rem 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .form-lbl { font-size: .68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .form-dots { display: flex; gap: 5px; }
+    .fdot {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 800;
+    }
+    .fdot-W { background: var(--win-bg); color: var(--win); }
+    .fdot-D { background: var(--draw-bg); color: var(--draw); }
+    .fdot-L { background: var(--loss-bg); color: var(--loss); }
+
+    /* ── BACKTESTING ── */
+    .page-header { margin-bottom: 2rem; }
+    .page-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.025em; }
+    .page-sub { font-size: .875rem; color: var(--sub); margin-top: .4rem; line-height: 1.65; max-width: 600px; }
+
+    .metric-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .metric-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 1.25rem 1rem; box-shadow: var(--sh); position: relative; overflow: hidden;
+    }
+    .metric-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .metric-card.m-overall::after { background: var(--accent); }
+    .metric-card.m-hw::after      { background: var(--win); }
+    .metric-card.m-draw::after    { background: var(--draw); }
+    .metric-card.m-aw::after      { background: var(--loss); }
+    .metric-num { font-size: 2.2rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+    .metric-card.m-overall .metric-num { color: var(--accent); }
+    .metric-card.m-hw      .metric-num { color: var(--win); }
+    .metric-card.m-draw    .metric-num { color: var(--draw); }
+    .metric-card.m-aw      .metric-num { color: var(--loss); }
+    .metric-lbl { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--sub); }
+    .metric-sub { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 1.25rem 1.25rem .875rem; box-shadow: var(--sh); margin-bottom: 1.5rem;
+    }
+    .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .chart-title { font-size: .72rem; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: .08em; }
+    .chart-legend { display: flex; gap: 1rem; }
+    .leg-item { display: flex; align-items: center; gap: 5px; font-size: .7rem; color: var(--sub); font-weight: 600; }
+    .leg-line { width: 16px; height: 2.5px; border-radius: 2px; background: var(--accent); }
+    .leg-dash { width: 16px; height: 0; border-top: 2px dashed var(--border2); }
+
+    .filter-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 1rem 1.25rem; box-shadow: var(--sh); margin-bottom: 1.25rem;
+      display: flex; flex-direction: column; gap: .875rem;
+    }
+    .filter-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .filter-lbl {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted); min-width: 90px;
+    }
+    .chip-group { display: flex; gap: 4px; }
+    .chip {
+      background: var(--bg); border: 1px solid var(--border); color: var(--sub);
+      padding: 5px 12px; border-radius: 100px; font-size: .78rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all .12s;
+    }
+    .chip:hover { border-color: var(--border2); color: var(--text); }
+    .chip.active         { background: var(--text); border-color: var(--text); color: #fff; }
+    .chip.chip-H.active  { background: var(--win-bg); border-color: rgba(22,163,74,.3); color: var(--win); }
+    .chip.chip-D.active  { background: var(--draw-bg); border-color: rgba(217,119,6,.3); color: var(--draw); }
+    .chip.chip-A.active  { background: var(--loss-bg); border-color: rgba(220,38,38,.3); color: var(--loss); }
+    .chip.chip-ok.active   { background: var(--win-bg); border-color: rgba(22,163,74,.3); color: var(--win); }
+    .chip.chip-bad.active  { background: var(--loss-bg); border-color: rgba(220,38,38,.3); color: var(--loss); }
+
+    .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
+    .conf-slider {
+      -webkit-appearance: none; appearance: none; flex: 1; height: 3px;
+      background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .conf-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: var(--text); cursor: pointer; border: 2px solid #fff;
+      box-shadow: 0 0 0 2px var(--border2);
+    }
+    .conf-val { font-size: .84rem; font-weight: 800; color: var(--text); min-width: 40px; }
+    .team-filter-sel {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 5px 10px; font-size: .8rem; font-family: inherit;
+      font-weight: 500; cursor: pointer; outline: none;
+    }
+    .match-count { font-size: .78rem; color: var(--muted); margin-left: auto; }
+    .match-count strong { color: var(--text); font-weight: 700; }
+
+    .cards-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .match-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      overflow: hidden; box-shadow: var(--sh); border-left: 3px solid var(--border);
+      transition: box-shadow .15s;
+    }
+    .match-card:hover { box-shadow: var(--sh-md); }
+    .match-card.correct-card { border-left-color: var(--win); }
+    .match-card.wrong-card   { border-left-color: var(--loss); }
+
+    .card-top { display: flex; align-items: center; gap: 6px; padding: .6rem .875rem .3rem; }
+    .gw-badge {
+      font-size: .62rem; font-weight: 700; color: var(--muted); text-transform: uppercase;
+      letter-spacing: .07em; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 6px;
+    }
+    .card-date { font-size: .65rem; color: var(--muted); }
+    .card-result-dot {
+      margin-left: auto; width: 20px; height: 20px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 900;
+    }
+    .ri-correct { background: var(--win-bg); color: var(--win); }
+    .ri-wrong   { background: var(--loss-bg); color: var(--loss); }
+
+    .card-teams { display: flex; align-items: center; gap: .5rem; padding: .35rem .875rem .55rem; }
+    .card-team { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+    .card-team.away-s { flex-direction: row-reverse; }
+    .card-team-logo { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; }
+    .card-team-logo .abbr { font-size: .45rem; }
+    .card-team-name { font-size: .78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-score { font-size: 1rem; font-weight: 900; text-align: center; min-width: 44px; flex-shrink: 0; }
+
+    .card-foot {
+      border-top: 1px solid var(--border); padding: .45rem .875rem;
+      background: var(--bg); display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    }
+    .pred-chip { font-size: .62rem; font-weight: 700; padding: 2px 8px; border-radius: 100px; }
+    .pred-H { background: var(--win-bg); color: var(--win); }
+    .pred-D { background: var(--draw-bg); color: var(--draw); }
+    .pred-A { background: var(--loss-bg); color: var(--loss); }
+    .card-conf { font-size: .65rem; color: var(--muted); font-weight: 600; }
+    .mini-probs { display: flex; gap: .75rem; margin-left: auto; }
+    .mini-p { font-size: .63rem; color: var(--muted); font-weight: 600; }
+    .mini-p strong { color: var(--sub); font-weight: 700; }
+
+    .empty-cards { padding: 3rem; text-align: center; color: var(--muted); font-size: .875rem; }
+
+    /* ── TABLE ── */
+    .tbl-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--sh); }
+    .tbl-head { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+    .tbl-title { font-size: .875rem; font-weight: 800; }
+    .season-sel {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 6px 12px; font-size: .82rem;
+      font-family: inherit; cursor: pointer; outline: none; font-weight: 500;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 10px 10px; font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .08em; text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    thead th:nth-child(2) { text-align: left; padding-left: 12px; }
+    tbody td { padding: 13px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: .95rem; }
+    tbody td:nth-child(2) { text-align: left; padding-left: 12px; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg); }
+    .pos-badge { width: 26px; height: 26px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; }
+    .pos-cl  { background: rgba(37,99,235,.1);  color: var(--cl); }
+    .pos-el  { background: rgba(234,88,12,.1);  color: var(--el); }
+    .pos-ecl { background: rgba(147,51,234,.1); color: var(--ecl); }
+    .pos-rel { background: rgba(220,38,38,.1);  color: var(--rel); }
+    .pos-def { color: var(--sub); font-size: .875rem; }
+    .club-cell { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: .95rem; }
+    .club-logo-sm { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; }
+    .club-logo-sm .abbr { font-size: .55rem; }
+    .pts-bold { font-weight: 800; }
+    .gd-pos { color: var(--win); font-weight: 700; }
+    .gd-neg { color: var(--loss); font-weight: 700; }
+    .form-mini { display: flex; gap: 3px; justify-content: center; }
+    .fmini { width: 12px; height: 12px; border-radius: 3px; }
+    .zone-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: .875rem; }
+    .zone-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--sub); }
+    .zone-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── TEAMS ── */
+    .teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .team-chip {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 9px; border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: .9rem; font-weight: 600; font-family: inherit;
+      text-align: left; box-shadow: var(--sh); transition: box-shadow .12s, border-color .12s;
+    }
+    .team-chip:hover { border-color: var(--border2); box-shadow: var(--sh-md); }
+    .team-chip.active { border-color: var(--text); background: var(--text); color: #fff; }
+    .chip-logo { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; }
+    .chip-logo .abbr { font-size: .55rem; }
+    .team-profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 1.5rem; }
+    .profile-logo { width: 76px; height: 76px; border-radius: 16px; }
+    .profile-logo .abbr { font-size: .95rem; }
+    .team-profile-name { font-size: 1.3rem; font-weight: 900; letter-spacing: -.02em; }
+    .team-profile-sub  { font-size: .84rem; color: var(--sub); margin-top: 3px; }
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 10px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.1rem 1rem; text-align: center; box-shadow: var(--sh); }
+    .stat-num { font-size: 2.1rem; font-weight: 900; line-height: 1; }
+    .stat-lbl { font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-top: 5px; }
+    .record-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1rem 1.25rem; box-shadow: var(--sh); }
+    .rec-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+    .rec-line { display: flex; justify-content: space-between; font-size: .84rem; padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .rec-line:last-child { border-bottom: none; }
+    .rec-line span:first-child { color: var(--sub); }
+    .rec-line span:last-child { font-weight: 700; }
+    .results-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1rem 1.25rem; box-shadow: var(--sh); }
+    .result-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .84rem; }
+    .result-row:last-child { border-bottom: none; }
+    .rdate { font-size: .72rem; color: var(--muted); width: 80px; flex-shrink: 0; }
+    .ropp  { flex: 1; font-weight: 600; }
+    .rscore { font-weight: 800; margin-left: auto; }
+
+    /* ── PIPELINE ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 1.5rem; }
+    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem 1rem; text-align: center; box-shadow: var(--sh); }
+    .kpi-val { font-size: 1.9rem; font-weight: 900; }
+    .kpi-lbl { font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+
+    .pipe-flow {
+      display: flex; align-items: stretch; margin-bottom: 1.5rem;
+      border: 1px solid var(--border); border-radius: var(--r);
+      overflow: hidden; box-shadow: var(--sh); background: var(--surface);
+    }
+    .pipe-step { flex: 1; padding: 1.1rem .9rem; text-align: center; }
+    .pipe-step + .pipe-step { border-left: 1px solid var(--border); }
+    .pipe-icon { font-size: 1.3rem; margin-bottom: 6px; }
+    .pipe-name { font-size: .8rem; font-weight: 800; margin-bottom: 4px; color: var(--text); }
+    .pipe-detail { font-size: .66rem; color: var(--sub); line-height: 1.5; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.25rem; box-shadow: var(--sh); }
+    .info-title { font-size: .7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem; }
+
+    .acc-display { text-align: center; padding: .75rem 0 1rem; }
+    .acc-num { font-size: 3.4rem; font-weight: 900; color: var(--accent); line-height: 1; letter-spacing: -.04em; }
+    .acc-sub { font-size: .8rem; color: var(--sub); margin-top: 6px; }
+    .vs-baseline { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 1.25rem; }
+    .vs-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .875rem; text-align: center; }
+    .vs-num { font-size: 1.1rem; font-weight: 800; }
+    .vs-lbl { font-size: .62rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-top: 3px; }
+    .split-divider { border: none; border-top: 1px solid var(--border); margin: .875rem 0; }
+    .split-row { display: flex; justify-content: space-between; align-items: center; font-size: .84rem; padding: 3px 0; }
+    .split-label { color: var(--sub); }
+    .split-val { font-weight: 700; }
+    .feat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .feat-label { font-size: .72rem; color: var(--sub); width: 180px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feat-bar-bg { flex: 1; height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+    .feat-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width .6s cubic-bezier(.4,0,.2,1); }
+    .feat-pct { font-size: .7rem; font-weight: 700; color: var(--sub); width: 36px; text-align: right; flex-shrink: 0; }
+
+    /* ── MISC ── */
+    .spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--text); border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { padding: 3rem; text-align: center; color: var(--muted); font-size: .9rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 700px) {
+      .metric-row { grid-template-columns: repeat(2,1fr); }
+      .cards-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+      .two-col { grid-template-columns: 1fr; }
+      .pipe-flow { flex-direction: column; }
+      .pipe-step + .pipe-step { border-left: none; border-top: 1px solid var(--border); }
+      .stats-row { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 600px) {
+      main { padding: 1rem; }
+      .predict-grid { grid-template-columns: 1fr; }
+      .vs-block { display: none; }
+      .result-teams { grid-template-columns: 1fr; gap: .875rem; }
+      .result-team.away { align-items: flex-start; }
+      .form-section { grid-template-columns: 1fr; }
+      .record-grid { grid-template-columns: 1fr; }
+      nav { gap: 0; }
+      .nav-btn { padding: 6px 8px; font-size: .78rem; }
+      header { padding: 0 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark"><img src="assets/epl-logo.png" alt="EPL"></div>
+      EPL Predictor
+    </div>
+    <nav>
+      <button class="nav-btn" :class="{active: view==='predict'}"  @click="view='predict'">Predict</button>
+      <button class="nav-btn" :class="{active: view==='backtest'}" @click="goBacktest">Backtesting</button>
+      <button class="nav-btn" :class="{active: view==='table'}"    @click="goTable">Table</button>
+      <button class="nav-btn" :class="{active: view==='teams'}"    @click="view='teams'">Teams</button>
+      <button class="nav-btn" :class="{active: view==='pipeline'}" @click="goPipeline">Pipeline</button>
+    </nav>
+  </header>
+
+  <main>
+    <div v-if="offline" class="notice">
+      API unavailable — if running locally, start with <code>uvicorn api.main:app --port 8000</code>
+    </div>
+
+    <!-- ════════ PREDICT ════════ -->
+    <div v-if="view==='predict'">
+      <div class="predict-grid">
+        <!-- Home -->
+        <div class="team-picker">
+          <span class="picker-label">Home Team</span>
+          <div class="team-preview">
+            <template v-if="home">
+              <div class="club-logo team-preview-logo" :style="{...logoStyle(home), borderRadius:'8px'}">
+                <img :src="logoUrl(home)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+                <span class="abbr" style="font-size:.52rem">{{ abbr(home) }}</span>
+              </div>
+              <span class="team-preview-name">{{ home }}</span>
+            </template>
+            <div v-else style="height:46px"></div>
+          </div>
+          <select class="team-select" v-model="home" @change="onTeamChange">
+            <option value="" disabled>Select team…</option>
+            <option v-for="t in teams" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </div>
+
+        <div class="vs-block">
+          <span class="vs-text">vs</span>
+        </div>
+
+        <!-- Away -->
+        <div class="team-picker">
+          <span class="picker-label">Away Team</span>
+          <div class="team-preview">
+            <template v-if="away">
+              <div class="club-logo team-preview-logo" :style="{...logoStyle(away), borderRadius:'8px'}">
+                <img :src="logoUrl(away)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+                <span class="abbr" style="font-size:.52rem">{{ abbr(away) }}</span>
+              </div>
+              <span class="team-preview-name">{{ away }}</span>
+            </template>
+            <div v-else style="height:46px"></div>
+          </div>
+          <select class="team-select" v-model="away" @change="onTeamChange">
+            <option value="" disabled>Select team…</option>
+            <option v-for="t in teams" :key="t" :value="t" :disabled="t===home">{{ t }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- H2H strip -->
+      <div v-if="h2hPreview" class="h2h-card">
+        <div class="h2h-tag">Head to Head</div>
+        <div class="h2h-stats">
+          <div class="h2h-stat">
+            <div class="h2h-stat-n" style="color:var(--win)">{{ h2hPreview.home_wins }}</div>
+            <div class="h2h-stat-l">{{ abbr(home) }} W</div>
+          </div>
+          <div class="h2h-stat">
+            <div class="h2h-stat-n" style="color:var(--draw)">{{ h2hPreview.draws }}</div>
+            <div class="h2h-stat-l">Draws</div>
+          </div>
+          <div class="h2h-stat">
+            <div class="h2h-stat-n" style="color:var(--loss)">{{ h2hPreview.away_wins }}</div>
+            <div class="h2h-stat-l">{{ abbr(away) }} W</div>
+          </div>
+        </div>
+        <div class="h2h-dots">
+          <span style="font-size:.62rem;color:var(--muted);margin-right:4px">LAST 5</span>
+          <div v-for="(m,i) in h2hPreview.matches.slice(0,5)" :key="i"
+               class="h2h-dot"
+               :style="h2hDotStyle(m.result)"
+               :title="`${m.date}: ${h2hPreview.home_team} ${m.home_goals}–${m.away_goals} ${h2hPreview.away_team}`">
+            {{ m.result }}
+          </div>
+        </div>
+      </div>
+
+      <button class="predict-btn" :disabled="!home||!away||loading" @click="predict">
+        <span v-if="loading"><span class="spinner"></span>&nbsp; Predicting…</span>
+        <span v-else>Predict Match</span>
+      </button>
+      <div v-if="err" class="error-box">{{ err }}</div>
+
+      <!-- Result -->
+      <div v-if="result" class="result-card">
+        <div class="result-teams">
+          <div class="result-team">
+            <div class="club-logo res-logo" :style="logoStyle(result.home_team)">
+              <img :src="logoUrl(result.home_team)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+              <span class="abbr">{{ abbr(result.home_team) }}</span>
+            </div>
+            <div>
+              <div class="res-name">{{ result.home_team }}</div>
+              <div class="res-role">Home</div>
+            </div>
+          </div>
+          <div class="result-verdict">
+            <div :class="vpClass(result.prediction)">{{ result.prediction }}</div>
+            <div class="verdict-conf">{{ (result.confidence*100).toFixed(0) }}% confidence</div>
+          </div>
+          <div class="result-team away">
+            <div class="club-logo res-logo" :style="logoStyle(result.away_team)" style="margin-left:auto">
+              <img :src="logoUrl(result.away_team)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+              <span class="abbr">{{ abbr(result.away_team) }}</span>
+            </div>
+            <div>
+              <div class="res-name">{{ result.away_team }}</div>
+              <div class="res-role">Away</div>
+            </div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="prob-section">
+          <div class="prob-row">
+            <div class="prob-name">Home Win</div>
+            <div class="prob-track"><div class="prob-fill" :style="{width:pct(result.home_win_prob), background:'var(--win)'}"></div></div>
+            <div class="prob-pct" style="color:var(--win)">{{ pct(result.home_win_prob) }}</div>
+          </div>
+          <div class="prob-row">
+            <div class="prob-name">Draw</div>
+            <div class="prob-track"><div class="prob-fill" :style="{width:pct(result.draw_prob), background:'var(--draw)'}"></div></div>
+            <div class="prob-pct" style="color:var(--draw)">{{ pct(result.draw_prob) }}</div>
+          </div>
+          <div class="prob-row">
+            <div class="prob-name">Away Win</div>
+            <div class="prob-track"><div class="prob-fill" :style="{width:pct(result.away_win_prob), background:'var(--loss)'}"></div></div>
+            <div class="prob-pct" style="color:var(--loss)">{{ pct(result.away_win_prob) }}</div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="form-section">
+          <div>
+            <div class="form-lbl">{{ result.home_team }} form</div>
+            <div class="form-dots">
+              <div v-for="f in result.home_form" :key="f.date" :class="'fdot fdot-'+f.result"
+                   :title="`${f.result} ${f.goals_for}–${f.goals_against} vs ${f.opponent} (${f.date})`">
+                {{ f.result }}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="form-lbl">{{ result.away_team }} form</div>
+            <div class="form-dots">
+              <div v-for="f in result.away_form" :key="f.date" :class="'fdot fdot-'+f.result"
+                   :title="`${f.result} ${f.goals_for}–${f.goals_against} vs ${f.opponent} (${f.date})`">
+                {{ f.result }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ BACKTESTING ════════ -->
+    <div v-if="view==='backtest'">
+      <div v-if="loadingBt" class="empty"><span class="spinner"></span></div>
+      <div v-else-if="!btData" class="empty">Validation data unavailable — run pipeline.py first.</div>
+      <div v-else>
+        <div class="page-header">
+          <div class="page-title">2025–26 Season Backtesting</div>
+          <div class="page-sub">Predictions made using only pre-match data — no look-ahead leakage. Model trained on 2015–16 through 2024–25.</div>
+        </div>
+
+        <div class="metric-row">
+          <div class="metric-card m-overall">
+            <div class="metric-num">{{ (btData.accuracy * 100).toFixed(1) }}%</div>
+            <div class="metric-lbl">Overall Accuracy</div>
+            <div class="metric-sub">{{ btData.correct }} / {{ btData.total }} correct</div>
+          </div>
+          <div class="metric-card m-hw">
+            <div class="metric-num">{{ (btData.by_outcome.H.accuracy * 100).toFixed(1) }}%</div>
+            <div class="metric-lbl">Home Win</div>
+            <div class="metric-sub">{{ btData.by_outcome.H.correct }} / {{ btData.by_outcome.H.total }}</div>
+          </div>
+          <div class="metric-card m-draw">
+            <div class="metric-num">{{ (btData.by_outcome.D.accuracy * 100).toFixed(1) }}%</div>
+            <div class="metric-lbl">Draw</div>
+            <div class="metric-sub">{{ btData.by_outcome.D.correct }} / {{ btData.by_outcome.D.total }}</div>
+          </div>
+          <div class="metric-card m-aw">
+            <div class="metric-num">{{ (btData.by_outcome.A.accuracy * 100).toFixed(1) }}%</div>
+            <div class="metric-lbl">Away Win</div>
+            <div class="metric-sub">{{ btData.by_outcome.A.correct }} / {{ btData.by_outcome.A.total }}</div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div class="chart-title">Running Accuracy Over the Season</div>
+            <div class="chart-legend">
+              <div class="leg-item"><div class="leg-line"></div> Model</div>
+              <div class="leg-item"><div class="leg-dash"></div> Home baseline</div>
+            </div>
+          </div>
+          <div style="width:100%;overflow:hidden">
+            <svg viewBox="0 0 800 120" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+              <line x1="40" y1="10"  x2="790" y2="10"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="40" y1="35"  x2="790" y2="35"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="40" y1="60"  x2="790" y2="60"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="40" y1="85"  x2="790" y2="85"  stroke="#e2e8f0" stroke-width="1"/>
+              <line x1="40" y1="108" x2="790" y2="108" stroke="#e2e8f0" stroke-width="1"/>
+              <text x="34" y="13"  text-anchor="end" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif">100%</text>
+              <text x="34" y="38"  text-anchor="end" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif">75%</text>
+              <text x="34" y="63"  text-anchor="end" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif">50%</text>
+              <text x="34" y="88"  text-anchor="end" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif">25%</text>
+              <text x="34" y="111" text-anchor="end" fill="#94a3b8" font-size="9" font-family="Inter,sans-serif">0%</text>
+              <line :x1="40" :y1="chartY(btData.by_outcome.H.total / btData.total)" x2="790"
+                    :y2="chartY(btData.by_outcome.H.total / btData.total)"
+                    stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5,4"/>
+              <path :d="chartAreaPath" fill="rgba(124,58,237,0.06)"/>
+              <path :d="chartLinePath" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle v-if="chartPoints.length" :cx="chartPoints[chartPoints.length-1].x" :cy="chartPoints[chartPoints.length-1].y" r="4" fill="#7c3aed"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-row">
+            <div class="filter-lbl">Confidence ≥</div>
+            <div class="slider-wrap">
+              <input type="range" class="conf-slider" min="0" max="80" step="5" v-model.number="btConfThresh" />
+              <div class="conf-val">{{ btConfThresh }}%</div>
+            </div>
+            <div class="match-count" style="margin-left:auto">
+              Showing <strong>{{ filteredMatches.length }}</strong> of <strong>{{ btData.total }}</strong> matches
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="filter-lbl">Outcome</div>
+            <div class="chip-group">
+              <button class="chip" :class="{active: btOutcomeFilter==='ALL'}" @click="btOutcomeFilter='ALL'">All</button>
+              <button class="chip chip-H" :class="{active: btOutcomeFilter==='H'}" @click="btOutcomeFilter='H'">Home</button>
+              <button class="chip chip-D" :class="{active: btOutcomeFilter==='D'}" @click="btOutcomeFilter='D'">Draw</button>
+              <button class="chip chip-A" :class="{active: btOutcomeFilter==='A'}" @click="btOutcomeFilter='A'">Away</button>
+            </div>
+            <div class="filter-lbl" style="margin-left:1rem">Prediction</div>
+            <div class="chip-group">
+              <button class="chip" :class="{active: btResultFilter==='ALL'}" @click="btResultFilter='ALL'">All</button>
+              <button class="chip chip-ok"  :class="{active: btResultFilter==='CORRECT'}" @click="btResultFilter='CORRECT'">Correct</button>
+              <button class="chip chip-bad" :class="{active: btResultFilter==='WRONG'}"   @click="btResultFilter='WRONG'">Wrong</button>
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="filter-lbl">Team</div>
+            <select class="team-filter-sel" v-model="btTeamFilter">
+              <option value="">All Teams</option>
+              <option v-for="t in btTeams" :key="t" :value="t">{{ t }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-if="filteredMatches.length" class="cards-grid">
+          <div v-for="m in filteredMatches" :key="m.date+m.home_team"
+               class="match-card" :class="m.correct ? 'correct-card' : 'wrong-card'">
+            <div class="card-top">
+              <span class="gw-badge">GW {{ m.gameweek }}</span>
+              <span class="card-date">{{ m.date }}</span>
+              <div class="card-result-dot" :class="m.correct ? 'ri-correct' : 'ri-wrong'">
+                {{ m.correct ? '✓' : '✗' }}
+              </div>
+            </div>
+            <div class="card-teams">
+              <div class="card-team">
+                <div class="club-logo card-team-logo" :style="logoStyle(m.home_team)">
+                  <img :src="logoUrl(m.home_team)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+                  <span class="abbr" style="font-size:.45rem">{{ abbr(m.home_team) }}</span>
+                </div>
+                <span class="card-team-name">{{ m.home_team }}</span>
+              </div>
+              <div class="card-score">{{ m.home_goals }} – {{ m.away_goals }}</div>
+              <div class="card-team away-s">
+                <div class="club-logo card-team-logo" :style="logoStyle(m.away_team)">
+                  <img :src="logoUrl(m.away_team)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+                  <span class="abbr" style="font-size:.45rem">{{ abbr(m.away_team) }}</span>
+                </div>
+                <span class="card-team-name" style="text-align:right">{{ m.away_team }}</span>
+              </div>
+            </div>
+            <div class="card-foot">
+              <span class="pred-chip" :class="'pred-'+m.predicted">
+                {{ m.predicted==='H' ? 'Home Win' : m.predicted==='D' ? 'Draw' : 'Away Win' }}
+              </span>
+              <span class="card-conf">{{ (m.confidence*100).toFixed(0) }}% conf</span>
+              <div class="mini-probs">
+                <span class="mini-p">H <strong>{{ (m.home_win_prob*100).toFixed(0) }}%</strong></span>
+                <span class="mini-p">D <strong>{{ (m.draw_prob*100).toFixed(0) }}%</strong></span>
+                <span class="mini-p">A <strong>{{ (m.away_win_prob*100).toFixed(0) }}%</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-cards">No matches match the current filters.</div>
+      </div>
+    </div>
+
+    <!-- ════════ TABLE ════════ -->
+    <div v-if="view==='table'">
+      <div class="tbl-wrap">
+        <div class="tbl-head">
+          <span class="tbl-title">Premier League Table</span>
+          <select class="season-sel" v-model="season" @change="loadTable">
+            <option v-for="s in seasons" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+        <div v-if="loadingTable" class="empty"><span class="spinner"></span></div>
+        <table v-else>
+          <thead>
+            <tr>
+              <th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th>
+              <th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th>Form</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in table" :key="row.team">
+              <td><span class="pos-badge" :class="posCls(row.position)">{{ row.position }}</span></td>
+              <td>
+                <div class="club-cell">
+                  <div class="club-logo club-logo-sm" :style="logoStyle(row.team)">
+                    <img :src="logoUrl(row.team)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+                    <span class="abbr">{{ abbr(row.team) }}</span>
+                  </div>
+                  {{ row.team }}
+                </div>
+              </td>
+              <td>{{ row.played }}</td><td>{{ row.won }}</td><td>{{ row.drawn }}</td><td>{{ row.lost }}</td>
+              <td>{{ row.goals_for }}</td><td>{{ row.goals_against }}</td>
+              <td :class="row.goal_difference>0?'gd-pos':row.goal_difference<0?'gd-neg':''">
+                {{ row.goal_difference>0?'+':'' }}{{ row.goal_difference }}
+              </td>
+              <td class="pts-bold">{{ row.points }}</td>
+              <td>
+                <div class="form-mini">
+                  <div v-for="(r,i) in row.form" :key="i" class="fmini"
+                       :style="{background: r==='W'?'var(--win)':r==='D'?'var(--draw)':'var(--loss)'}"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="zone-legend">
+        <div class="zone-item"><div class="zone-dot" style="background:rgba(37,99,235,.6)"></div> Champions League</div>
+        <div class="zone-item"><div class="zone-dot" style="background:rgba(234,88,12,.6)"></div> Europa League</div>
+        <div class="zone-item"><div class="zone-dot" style="background:rgba(220,38,38,.6)"></div> Relegation</div>
+      </div>
+    </div>
+
+    <!-- ════════ TEAMS ════════ -->
+    <div v-if="view==='teams'">
+      <div class="teams-grid">
+        <button v-for="t in teams" :key="t"
+                class="team-chip" :class="{active: selectedTeam===t}"
+                @click="selectTeam(t)">
+          <div class="club-logo chip-logo" :style="logoStyle(t)">
+            <img :src="logoUrl(t)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+            <span class="abbr">{{ abbr(t) }}</span>
+          </div>
+          {{ t }}
+        </button>
+      </div>
+
+      <div v-if="loadingTeam" class="empty"><span class="spinner"></span></div>
+      <div v-else-if="teamData">
+        <div class="team-profile-header">
+          <div class="club-logo profile-logo" :style="logoStyle(teamData.team)">
+            <img :src="logoUrl(teamData.team)" @load="e=>e.target.classList.add('loaded')" @error="e=>e.target.remove()" />
+            <span class="abbr">{{ abbr(teamData.team) }}</span>
+          </div>
+          <div style="flex:1">
+            <div class="team-profile-name">{{ teamData.team }}</div>
+            <div class="team-profile-sub">{{ teamData.season }} — {{ teamData.played }} games played</div>
+          </div>
+          <select class="season-sel" v-model="teamSeason" @change="selectTeam(selectedTeam)">
+            <option v-for="s in seasons" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num" style="color:var(--win)">{{ teamData.won }}</div><div class="stat-lbl">Wins</div></div>
+          <div class="stat-card"><div class="stat-num" style="color:var(--draw)">{{ teamData.drawn }}</div><div class="stat-lbl">Draws</div></div>
+          <div class="stat-card"><div class="stat-num" style="color:var(--loss)">{{ teamData.lost }}</div><div class="stat-lbl">Losses</div></div>
+          <div class="stat-card"><div class="stat-num">{{ teamData.goals_for }}</div><div class="stat-lbl">Goals For</div></div>
+          <div class="stat-card"><div class="stat-num">{{ teamData.goals_against }}</div><div class="stat-lbl">Goals Against</div></div>
+          <div class="stat-card">
+            <div class="stat-num" :style="{color:teamData.points_per_game>=1.9?'var(--win)':teamData.points_per_game>=1.3?'var(--draw)':'var(--loss)'}">
+              {{ teamData.points_per_game }}
+            </div>
+            <div class="stat-lbl">Pts / Game</div>
+          </div>
+        </div>
+
+        <div class="record-grid">
+          <div class="rec-card">
+            <div class="rec-title">Home Record</div>
+            <div class="rec-line"><span>Played</span><span>{{ teamData.home_record.played }}</span></div>
+            <div class="rec-line"><span style="color:var(--win)">Won</span><span>{{ teamData.home_record.won }}</span></div>
+            <div class="rec-line"><span style="color:var(--draw)">Drawn</span><span>{{ teamData.home_record.drawn }}</span></div>
+            <div class="rec-line"><span style="color:var(--loss)">Lost</span><span>{{ teamData.home_record.lost }}</span></div>
+            <div class="rec-line"><span>Goals</span><span>{{ teamData.home_record.gf }}–{{ teamData.home_record.ga }}</span></div>
+          </div>
+          <div class="rec-card">
+            <div class="rec-title">Away Record</div>
+            <div class="rec-line"><span>Played</span><span>{{ teamData.away_record.played }}</span></div>
+            <div class="rec-line"><span style="color:var(--win)">Won</span><span>{{ teamData.away_record.won }}</span></div>
+            <div class="rec-line"><span style="color:var(--draw)">Drawn</span><span>{{ teamData.away_record.drawn }}</span></div>
+            <div class="rec-line"><span style="color:var(--loss)">Lost</span><span>{{ teamData.away_record.lost }}</span></div>
+            <div class="rec-line"><span>Goals</span><span>{{ teamData.away_record.gf }}–{{ teamData.away_record.ga }}</span></div>
+          </div>
+        </div>
+
+        <div class="results-card" style="margin-top:10px">
+          <div class="form-lbl" style="margin-bottom:10px">Recent Results</div>
+          <div v-for="f in [...teamData.form].reverse()" :key="f.date" class="result-row">
+            <div :class="'fdot fdot-'+f.result" style="width:26px;height:26px;border-radius:7px;flex-shrink:0">{{ f.result }}</div>
+            <div class="rdate">{{ f.date }}</div>
+            <div class="ropp">vs {{ f.opponent }}</div>
+            <div class="rscore">{{ f.goals_for }}–{{ f.goals_against }}</div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="!selectedTeam" class="empty">Select a team above to view their stats</div>
+    </div>
+
+    <!-- ════════ PIPELINE ════════ -->
+    <div v-if="view==='pipeline'">
+      <div v-if="loadingPipe" class="empty"><span class="spinner"></span></div>
+      <div v-else-if="pipe">
+        <div class="page-header">
+          <div class="page-title">ML Pipeline</div>
+          <div class="page-sub">Real EPL match data ingested, cleaned, feature-engineered, and fed into a calibrated gradient-boosted classifier — all served via REST API.</div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-val" style="color:var(--accent)">{{ pipe.total_matches.toLocaleString() }}</div>
+            <div class="kpi-lbl">Matches</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" style="color:#2563eb">{{ pipe.n_seasons }}</div>
+            <div class="kpi-lbl">Seasons</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" style="color:var(--draw)">{{ pipe.n_features }}</div>
+            <div class="kpi-lbl">Features</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-val" style="color:var(--win)">{{ (pipe.test_accuracy * 100).toFixed(1) }}%</div>
+            <div class="kpi-lbl">Test Accuracy</div>
+          </div>
+        </div>
+
+        <div class="pipe-flow">
+          <div v-for="step in pipe.pipeline_steps" :key="step.name" class="pipe-step">
+            <div class="pipe-icon">{{ pipeIcon(step.name) }}</div>
+            <div class="pipe-name">{{ step.name }}</div>
+            <div class="pipe-detail">{{ step.detail }}</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="info-card">
+            <div class="info-title">Model Performance</div>
+            <div class="acc-display">
+              <div class="acc-num">{{ (pipe.test_accuracy * 100).toFixed(1) }}%</div>
+              <div class="acc-sub">Test accuracy on {{ pipe.test_seasons.join(', ') }}</div>
+            </div>
+            <div class="vs-baseline">
+              <div class="vs-item">
+                <div class="vs-num" style="color:var(--accent)">{{ (pipe.test_accuracy * 100).toFixed(1) }}%</div>
+                <div class="vs-lbl">Model</div>
+              </div>
+              <div class="vs-item">
+                <div class="vs-num" style="color:var(--muted)">{{ (pipe.baseline_home * 100).toFixed(1) }}%</div>
+                <div class="vs-lbl">Baseline</div>
+              </div>
+              <div class="vs-item">
+                <div class="vs-num" style="color:var(--win)">+{{ ((pipe.test_accuracy - pipe.baseline_home)*100).toFixed(1) }}%</div>
+                <div class="vs-lbl">Lift</div>
+              </div>
+            </div>
+            <div class="split-divider" style="margin-top:1.25rem"></div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div class="split-row"><span class="split-label">Algorithm</span><span class="split-val" style="font-size:.8rem">HistGradientBoosting</span></div>
+              <div class="split-row"><span class="split-label">Calibration</span><span class="split-val" style="font-size:.8rem">Isotonic (cv=5)</span></div>
+              <div class="split-row"><span class="split-label">Log-loss</span><span class="split-val">{{ pipe.test_log_loss }}</span></div>
+              <div class="split-row"><span class="split-label">Train seasons</span><span class="split-val">{{ pipe.train_seasons.length }}</span></div>
+              <div class="split-row"><span class="split-label">Test seasons</span><span class="split-val" style="font-size:.78rem">{{ pipe.test_seasons.join(', ') }}</span></div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-title">Top Features by Importance</div>
+            <div v-if="pipe.feature_importance.length">
+              <div v-for="f in pipe.feature_importance" :key="f.feature" class="feat-row">
+                <div class="feat-label" :title="f.feature">{{ f.label }}</div>
+                <div class="feat-bar-bg">
+                  <div class="feat-bar-fill" :style="{width: featPct(f.importance, pipe.feature_importance[0].importance)}"></div>
+                </div>
+                <div class="feat-pct">{{ (f.importance * 100).toFixed(1) }}%</div>
+              </div>
+            </div>
+            <div v-else class="empty" style="padding:1rem">Feature data unavailable</div>
+          </div>
+        </div>
+
+        <div class="info-card" style="margin-top:1.25rem">
+          <div class="info-title">Historical Outcome Distribution ({{ pipe.total_matches.toLocaleString() }} matches)</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:.75rem">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px">
+                <span style="font-weight:700;color:var(--win)">Home Win</span>
+                <span style="color:var(--sub)">{{ (pipe.baseline_home*100).toFixed(1) }}%</span>
+              </div>
+              <div style="height:6px;background:var(--bg);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+                <div :style="{width:(pipe.baseline_home*100)+'%',height:'100%',background:'var(--win)',borderRadius:'3px'}"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px">
+                <span style="font-weight:700;color:var(--draw)">Draw</span>
+                <span style="color:var(--sub)">{{ (pipe.baseline_draw*100).toFixed(1) }}%</span>
+              </div>
+              <div style="height:6px;background:var(--bg);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+                <div :style="{width:(pipe.baseline_draw*100)+'%',height:'100%',background:'var(--draw)',borderRadius:'3px'}"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:6px">
+                <span style="font-weight:700;color:var(--loss)">Away Win</span>
+                <span style="color:var(--sub)">{{ (pipe.baseline_away*100).toFixed(1) }}%</span>
+              </div>
+              <div style="height:6px;background:var(--bg);border:1px solid var(--border);border-radius:3px;overflow:hidden">
+                <div :style="{width:(pipe.baseline_away*100)+'%',height:'100%',background:'var(--loss)',borderRadius:'3px'}"></div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.875rem;line-height:1.5">
+            Home teams win ~{{ (pipe.baseline_home*100).toFixed(0) }}% of the time. The model beats the home-win baseline by {{ ((pipe.test_accuracy - pipe.baseline_home)*100).toFixed(1) }} percentage points.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+const LOCAL = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+const API = LOCAL ? 'http://localhost:8000' : '/api';
+
+const COLORS = {
+  'Arsenal':          ['#EF0107','#fff'],    'Aston Villa':    ['#670E36','#95BFE5'],
+  'Bournemouth':      ['#B50E12','#fff'],    'Brentford':      ['#E30613','#fff'],
+  'Brighton':         ['#0057B8','#fff'],    'Burnley':        ['#6C1D45','#99D6EA'],
+  'Chelsea':          ['#034694','#fff'],    'Crystal Palace': ['#1B458F','#C4122E'],
+  'Everton':          ['#003399','#fff'],    'Fulham':         ['#CC0000','#fff'],
+  'Ipswich':          ['#0044A9','#fff'],    'Leeds':          ['#1D428A','#FFCD00'],
+  'Leicester':        ['#003090','#FDBE11'], 'Liverpool':      ['#C8102E','#F6EB61'],
+  'Luton':            ['#F78F1E','#231F20'], 'Man City':       ['#6CABDD','#1C2C5B'],
+  'Man United':       ['#DA291C','#FBE122'], 'Middlesbrough':  ['#E01B22','#fff'],
+  'Newcastle':        ['#241F20','#41B6E6'], 'Norwich':        ['#00A650','#FFF200'],
+  "Nott'm Forest":    ['#DD0000','#fff'],    'Sheffield United':['#EE2737','#fff'],
+  'Southampton':      ['#D71920','#fff'],    'Tottenham':          ['#132257','#fff'],
+  'Sunderland':       ['#EB172B','#fff'],    'Swansea':        ['#121212','#fff'],
+  'Watford':          ['#FBEE23','#111'],    'West Brom':      ['#122F67','#fff'],
+  'West Ham':         ['#7A263A','#1BB1E7'], 'Wolves':         ['#FDB913','#231F20'],
+  'Huddersfield':     ['#0E63AD','#fff'],    'Cardiff':        ['#0070B5','#fff'],
+  'Stoke':            ['#E03A3E','#fff'],    'Hull':           ['#F18A00','#000'],
+};
+
+const LOGOS = {
+  'Arsenal':          'assets/logos/arsenal.png',
+  'Aston Villa':      'assets/logos/astonvilla.png',
+  'Bournemouth':      'assets/logos/bournemouth.png',
+  'Brentford':        'assets/logos/brentford.png',
+  'Brighton':         'assets/logos/brighton.png',
+  'Burnley':          'assets/logos/burnley.png',
+  'Chelsea':          'assets/logos/chelsea.png',
+  'Crystal Palace':   'assets/logos/crystalpalace.png',
+  'Everton':          'assets/logos/everton.png',
+  'Fulham':           'assets/logos/fulham.png',
+  'Ipswich':          'assets/logos/ipswich.png',
+  'Leeds':            'assets/logos/leeds.png',
+  'Leicester':        'assets/logos/leicester.png',
+  'Liverpool':        'assets/logos/liverpool.png',
+  'Luton':            'assets/logos/luton.png',
+  'Man City':         'assets/logos/mancity.png',
+  'Man United':       'assets/logos/manutd.png',
+  'Newcastle':        'assets/logos/newcastle.png',
+  "Nott'm Forest":    'assets/logos/nottmforest.png',
+  'Sheffield United': 'assets/logos/sheffieldunited.png',
+  'Southampton':      'assets/logos/southampton.png',
+  'Tottenham':            'assets/logos/tottenham.png',
+  'Sunderland':       'assets/logos/sunderland.png',
+  'Watford':          'assets/logos/watford.png',
+  'West Brom':        'assets/logos/westbrom.png',
+  'West Ham':         'assets/logos/westham.png',
+  'Wolves':           'assets/logos/wolves.png',
+  'Norwich':          'assets/logos/norwich.png',
+  'Middlesbrough':    'assets/logos/middlesbrough.png',
+  'Swansea':          'assets/logos/swansea.png',
+  'Cardiff':          'assets/logos/cardiff.png',
+  'Stoke':            'assets/logos/stoke.png',
+  'Huddersfield':     'assets/logos/huddersfield.png',
+  'Hull':             'assets/logos/hull.png',
+};
+
+const ABBRS = {
+  'Arsenal':'ARS','Aston Villa':'AVL','Bournemouth':'BOU','Brentford':'BRE',
+  'Brighton':'BHA','Burnley':'BUR','Chelsea':'CHE','Crystal Palace':'CRY',
+  'Everton':'EVE','Fulham':'FUL','Ipswich':'IPS','Leeds':'LEE',
+  'Leicester':'LEI','Liverpool':'LIV','Luton':'LUT','Man City':'MCI',
+  'Man United':'MUN','Middlesbrough':'MID','Newcastle':'NEW','Norwich':'NOR',
+  "Nott'm Forest":'NFO','Sheffield United':'SHU','Southampton':'SOU','Tottenham':'TOT',
+  'Sunderland':'SUN','Swansea':'SWA','Watford':'WAT','West Brom':'WBA',
+  'West Ham':'WHU','Wolves':'WOL','Huddersfield':'HUD','Cardiff':'CAR','Stoke':'STK',
+  'Hull':'HUL',
+};
+
+const CHART_X_MIN = 40, CHART_X_MAX = 790;
+const CHART_Y_MIN = 10, CHART_Y_MAX = 108;
+
+function toChartX(i, total) {
+  return CHART_X_MIN + ((i / (total - 1)) * (CHART_X_MAX - CHART_X_MIN));
+}
+function toChartY(pct) {
+  return CHART_Y_MAX - pct * (CHART_Y_MAX - CHART_Y_MIN);
+}
+
+createApp({
+  setup() {
+    const view = ref('predict');
+    const offline = ref(false);
+    const teams = ref([]);
+    const seasons = ref([]);
+    const season = ref(null);
+    const teamSeason = ref(null);
+
+    const home = ref('');
+    const away = ref('');
+    const loading = ref(false);
+    const result = ref(null);
+    const err = ref(null);
+    const h2hPreview = ref(null);
+
+    const table = ref([]);
+    const loadingTable = ref(false);
+
+    const selectedTeam = ref(null);
+    const teamData = ref(null);
+    const loadingTeam = ref(false);
+
+    const pipe = ref(null);
+    const loadingPipe = ref(false);
+
+    const btData = ref(null);
+    const loadingBt = ref(false);
+    const btConfThresh = ref(0);
+    const btOutcomeFilter = ref('ALL');
+    const btResultFilter = ref('ALL');
+    const btTeamFilter = ref('');
+
+    async function api(path, opts) {
+      const r = await fetch(API + path, opts);
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    onMounted(async () => {
+      try {
+        const [t, s] = await Promise.all([api('/teams'), api('/seasons')]);
+        teams.value = t;
+        seasons.value = s;
+        season.value = s[s.length - 1];
+        teamSeason.value = s[s.length - 1];
+      } catch {
+        offline.value = true;
+        teams.value = ['Arsenal','Aston Villa','Bournemouth','Brentford','Brighton',
+          'Chelsea','Crystal Palace','Everton','Fulham','Ipswich','Leicester',
+          'Liverpool','Man City','Man United','Newcastle',"Nott'm Forest",
+          'Southampton','Tottenham','West Ham','Wolves'];
+        seasons.value = ['2025-26'];
+        season.value = '2025-26';
+        teamSeason.value = '2025-26';
+      }
+    });
+
+    async function predict() {
+      if (!home.value || !away.value) return;
+      loading.value = true; result.value = null; err.value = null;
+      try {
+        result.value = await api('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ home_team: home.value, away_team: away.value }),
+        });
+      } catch (e) {
+        err.value = offline.value ? 'Start the API: uvicorn api.main:app --port 8000' : e.message;
+      } finally { loading.value = false; }
+    }
+
+    async function onTeamChange() {
+      result.value = null;
+      h2hPreview.value = null;
+      if (home.value && away.value && home.value !== away.value) {
+        try {
+          h2hPreview.value = await api(`/h2h/${encodeURIComponent(home.value)}/${encodeURIComponent(away.value)}`);
+        } catch { h2hPreview.value = null; }
+      }
+    }
+
+    async function goTable() {
+      view.value = 'table';
+      if (!table.value.length) await loadTable();
+    }
+
+    async function goPipeline() {
+      view.value = 'pipeline';
+      if (!pipe.value) {
+        loadingPipe.value = true;
+        try { pipe.value = await api('/model/info'); }
+        catch { pipe.value = null; }
+        finally { loadingPipe.value = false; }
+      }
+    }
+
+    async function goBacktest() {
+      view.value = 'backtest';
+      if (!btData.value) {
+        loadingBt.value = true;
+        try { btData.value = await api('/validation'); }
+        catch { btData.value = null; }
+        finally { loadingBt.value = false; }
+      }
+    }
+
+    async function loadTable() {
+      loadingTable.value = true; table.value = [];
+      try { table.value = await api(`/standings?season=${season.value}`); }
+      catch { table.value = []; }
+      finally { loadingTable.value = false; }
+    }
+
+    async function selectTeam(t) {
+      selectedTeam.value = t; loadingTeam.value = true; teamData.value = null;
+      try { teamData.value = await api(`/team/${encodeURIComponent(t)}?season=${teamSeason.value}`); }
+      catch { teamData.value = null; }
+      finally { loadingTeam.value = false; }
+    }
+
+    const btTeams = computed(() => {
+      if (!btData.value) return [];
+      const s = new Set();
+      btData.value.matches.forEach(m => { s.add(m.home_team); s.add(m.away_team); });
+      return [...s].sort();
+    });
+
+    const filteredMatches = computed(() => {
+      if (!btData.value) return [];
+      const thresh = btConfThresh.value / 100;
+      return btData.value.matches.filter(m => {
+        if (m.confidence < thresh) return false;
+        if (btOutcomeFilter.value !== 'ALL' && m.actual !== btOutcomeFilter.value) return false;
+        if (btResultFilter.value === 'CORRECT' && !m.correct) return false;
+        if (btResultFilter.value === 'WRONG' && m.correct) return false;
+        if (btTeamFilter.value && m.home_team !== btTeamFilter.value && m.away_team !== btTeamFilter.value) return false;
+        return true;
+      });
+    });
+
+    const chartPoints = computed(() => {
+      if (!btData.value) return [];
+      const ms = btData.value.matches;
+      return ms.map((m, i) => ({
+        x: toChartX(i, ms.length),
+        y: toChartY(m.running_accuracy),
+      }));
+    });
+
+    const chartLinePath = computed(() => {
+      const pts = chartPoints.value;
+      if (!pts.length) return '';
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cx = (prev.x + curr.x) / 2;
+        d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+      }
+      return d;
+    });
+
+    const chartAreaPath = computed(() => {
+      const pts = chartPoints.value;
+      if (!pts.length) return '';
+      let d = `M ${pts[0].x} ${CHART_Y_MAX}`;
+      d += ` L ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cx = (prev.x + curr.x) / 2;
+        d += ` C ${cx} ${prev.y}, ${cx} ${curr.y}, ${curr.x} ${curr.y}`;
+      }
+      d += ` L ${pts[pts.length - 1].x} ${CHART_Y_MAX} Z`;
+      return d;
+    });
+
+    function chartY(pct) { return toChartY(pct); }
+
+    function logoStyle(name) {
+      const [bg, fg] = COLORS[name] || ['#334155', '#fff'];
+      // Set CSS custom properties — .club-logo uses white bg, .abbr uses team colors via vars
+      return { '--team-bg': bg, '--team-fg': fg };
+    }
+    function logoUrl(name)  { return LOGOS[name] || ''; }
+    function abbr(name)     { return ABBRS[name] || name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3); }
+    function pct(v)         { return (v * 100).toFixed(1) + '%'; }
+    function vpClass(p) {
+      return p === 'Home Win' ? 'verdict-pill vp-home' : p === 'Draw' ? 'verdict-pill vp-draw' : 'verdict-pill vp-away';
+    }
+    function posCls(p) {
+      if (p <= 4)  return 'pos-badge pos-cl';
+      if (p === 5) return 'pos-badge pos-el';
+      if (p === 6) return 'pos-badge pos-ecl';
+      if (p >= 18) return 'pos-badge pos-rel';
+      return 'pos-badge pos-def';
+    }
+    function pipeIcon(name) {
+      return { Ingest:'📥', Features:'⚙️', Train:'🧠', Serve:'🚀', Deploy:'☁️' }[name] || '•';
+    }
+    function featPct(val, max) {
+      return max > 0 ? ((val / max) * 100).toFixed(1) + '%' : '0%';
+    }
+    function h2hDotStyle(result) {
+      const map = {
+        'H': { background: 'rgba(22,163,74,.12)',  color: '#16a34a' },
+        'D': { background: 'rgba(217,119,6,.12)',  color: '#d97706' },
+        'A': { background: 'rgba(220,38,38,.12)',  color: '#dc2626' },
+      };
+      return map[result] || { background: '#f1f5f9', color: '#64748b' };
+    }
+
+    return {
+      view, offline, teams, seasons, season, teamSeason,
+      home, away, loading, result, err, h2hPreview,
+      table, loadingTable,
+      selectedTeam, teamData, loadingTeam,
+      pipe, loadingPipe,
+      btData, loadingBt, btConfThresh, btOutcomeFilter, btResultFilter, btTeamFilter,
+      btTeams, filteredMatches, chartPoints, chartLinePath, chartAreaPath,
+      predict, onTeamChange, goTable, goPipeline, goBacktest, loadTable, selectTeam,
+      logoStyle, logoUrl, abbr, pct, vpClass, posCls, pipeIcon, featPct, h2hDotStyle, chartY,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

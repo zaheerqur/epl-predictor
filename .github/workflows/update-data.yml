@@ -1,0 +1,41 @@
+name: Weekly Data Refresh
+
+on:
+  schedule:
+    # Every Monday 08:00 UTC — captures weekend fixtures
+    - cron: '0 8 * * 1'
+    # Every Thursday 08:00 UTC — captures midweek fixtures
+    - cron: '0 8 * * 4'
+  workflow_dispatch:   # allow manual trigger from the GitHub Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        run: python pipeline.py
+
+      - name: Commit updated artifacts (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/processed/ models/
+          git diff --cached --quiet && echo "No new data." || (
+            git commit -m "data: refresh $(date -u '+%Y-%m-%d')" &&
+            git push
+          )

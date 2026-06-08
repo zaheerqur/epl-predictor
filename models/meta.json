@@ -1,0 +1,224 @@
+{
+  "feature_cols": [
+    "home_pts_roll5",
+    "home_pts_roll10",
+    "home_gf_roll5",
+    "home_gf_roll10",
+    "home_ga_roll5",
+    "home_ga_roll10",
+    "home_sot_roll5",
+    "home_sot_roll10",
+    "away_pts_roll5",
+    "away_pts_roll10",
+    "away_gf_roll5",
+    "away_gf_roll10",
+    "away_ga_roll5",
+    "away_ga_roll10",
+    "away_sot_roll5",
+    "away_sot_roll10",
+    "home_season_pts_pg",
+    "home_season_gd",
+    "away_season_pts_pg",
+    "away_season_gd",
+    "diff_pts_roll5",
+    "diff_pts_roll10",
+    "diff_gf_roll5",
+    "diff_ga_roll5",
+    "diff_season_pts_pg",
+    "diff_season_gd",
+    "h2h_hw",
+    "h2h_d",
+    "h2h_aw",
+    "h2h_n"
+  ],
+  "classes": [
+    "A",
+    "D",
+    "H"
+  ],
+  "label_order": [
+    "H",
+    "D",
+    "A"
+  ],
+  "proba_idx": {
+    "A": 0,
+    "D": 1,
+    "H": 2
+  },
+  "test_accuracy": 0.4526,
+  "test_log_loss": 1.056,
+  "train_seasons": [
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25"
+  ],
+  "test_seasons": [
+    "2025-26"
+  ],
+  "teams": [
+    "Arsenal",
+    "Aston Villa",
+    "Bournemouth",
+    "Brentford",
+    "Brighton",
+    "Burnley",
+    "Cardiff",
+    "Chelsea",
+    "Crystal Palace",
+    "Everton",
+    "Fulham",
+    "Huddersfield",
+    "Hull",
+    "Ipswich",
+    "Leeds",
+    "Leicester",
+    "Liverpool",
+    "Luton",
+    "Man City",
+    "Man United",
+    "Middlesbrough",
+    "Newcastle",
+    "Norwich",
+    "Nott'm Forest",
+    "Sheffield United",
+    "Southampton",
+    "Stoke",
+    "Sunderland",
+    "Swansea",
+    "Tottenham",
+    "Watford",
+    "West Brom",
+    "West Ham",
+    "Wolves"
+  ],
+  "feature_importance": [
+    {
+      "feature": "diff_season_pts_pg",
+      "importance": 0.02237
+    },
+    {
+      "feature": "home_pts_roll10",
+      "importance": 0.01
+    },
+    {
+      "feature": "away_gf_roll10",
+      "importance": 0.00711
+    },
+    {
+      "feature": "away_season_pts_pg",
+      "importance": 0.00658
+    },
+    {
+      "feature": "away_sot_roll5",
+      "importance": 0.00632
+    },
+    {
+      "feature": "home_ga_roll5",
+      "importance": 0.00605
+    },
+    {
+      "feature": "away_pts_roll5",
+      "importance": 0.00526
+    },
+    {
+      "feature": "h2h_d",
+      "importance": 0.00526
+    },
+    {
+      "feature": "home_season_pts_pg",
+      "importance": 0.00474
+    },
+    {
+      "feature": "home_sot_roll5",
+      "importance": 0.00395
+    },
+    {
+      "feature": "diff_ga_roll5",
+      "importance": 0.00368
+    },
+    {
+      "feature": "away_ga_roll5",
+      "importance": 0.00368
+    },
+    {
+      "feature": "home_season_gd",
+      "importance": 0.00368
+    },
+    {
+      "feature": "away_season_gd",
+      "importance": 0.00342
+    },
+    {
+      "feature": "home_sot_roll10",
+      "importance": 0.00342
+    },
+    {
+      "feature": "home_gf_roll10",
+      "importance": 0.00237
+    },
+    {
+      "feature": "diff_season_gd",
+      "importance": 0.00237
+    },
+    {
+      "feature": "h2h_n",
+      "importance": 0.00184
+    },
+    {
+      "feature": "diff_gf_roll5",
+      "importance": 0.00105
+    },
+    {
+      "feature": "h2h_aw",
+      "importance": 0.00053
+    },
+    {
+      "feature": "away_pts_roll10",
+      "importance": -0.00079
+    },
+    {
+      "feature": "away_gf_roll5",
+      "importance": -0.00105
+    },
+    {
+      "feature": "diff_pts_roll10",
+      "importance": -0.00211
+    },
+    {
+      "feature": "diff_pts_roll5",
+      "importance": -0.00263
+    },
+    {
+      "feature": "away_sot_roll10",
+      "importance": -0.00289
+    },
+    {
+      "feature": "home_pts_roll5",
+      "importance": -0.00342
+    },
+    {
+      "feature": "away_ga_roll10",
+      "importance": -0.00421
+    },
+    {
+      "feature": "h2h_hw",
+      "importance": -0.00421
+    },
+    {
+      "feature": "home_gf_roll5",
+      "importance": -0.00553
+    },
+    {
+      "feature": "home_ga_roll10",
+      "importance": -0.00579
+    }
+  ]
+}
