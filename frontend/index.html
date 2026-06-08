@@ -480,6 +480,28 @@
       .nav-btn { padding: 6px 8px; font-size: .78rem; }
       header { padding: 0 1rem; }
     }
+    /* ── About ── */
+    .about-page { max-width: 800px; margin: 0 auto; padding: 2rem 0 3rem; display: flex; flex-direction: column; gap: 2.5rem; }
+    .about-hero { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 2.5rem; }
+    .about-title { font-size: 1.9rem; font-weight: 800; letter-spacing: -.5px; color: var(--text); margin: 0 0 .75rem; }
+    .about-lead { font-size: 1.05rem; color: var(--sub); line-height: 1.7; margin: 0; max-width: 580px; }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .about-grid { grid-template-columns: 1fr; } }
+    .about-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
+    .about-card-icon { font-size: 1.6rem; margin-bottom: .75rem; }
+    .about-card h3 { font-size: .95rem; font-weight: 700; color: var(--text); margin: 0 0 .5rem; }
+    .about-card p { font-size: .875rem; color: var(--sub); line-height: 1.65; margin: 0; }
+    .about-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.75rem; }
+    .about-section-title { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0 0 1.25rem; }
+    .about-explainer { display: flex; flex-direction: column; gap: .75rem; }
+    .about-explainer-row { display: flex; gap: 1.25rem; align-items: baseline; padding: .75rem; background: var(--bg); border-radius: 8px; }
+    .about-explainer-label { font-size: .85rem; font-weight: 700; color: var(--accent); white-space: nowrap; min-width: 110px; }
+    .about-explainer-desc { font-size: .85rem; color: var(--sub); line-height: 1.6; }
+    .about-tabs-guide { display: flex; flex-direction: column; gap: .5rem; }
+    .about-tab-row { display: flex; gap: 1.25rem; align-items: baseline; padding: .75rem; border-radius: 8px; }
+    .about-tab-row:hover { background: var(--bg); }
+    .about-tab-name { font-size: .875rem; font-weight: 700; color: var(--text); white-space: nowrap; min-width: 90px; }
+    .about-tab-desc { font-size: .875rem; color: var(--sub); line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -490,6 +512,7 @@
       EPL Predictor
     </div>
     <nav>
+      <button class="nav-btn" :class="{active: view==='about'}"    @click="view='about'">About</button>
       <button class="nav-btn" :class="{active: view==='predict'}"  @click="view='predict'">Predict</button>
       <button class="nav-btn" :class="{active: view==='backtest'}" @click="goBacktest">Backtesting</button>
       <button class="nav-btn" :class="{active: view==='table'}"    @click="goTable">Table</button>
@@ -500,7 +523,95 @@
 
   <main>
     <div v-if="offline" class="notice">
-      API unavailable — if running locally, start with <code>uvicorn api.main:app --port 8000</code>
+      API unavailable - if running locally, start with <code>uvicorn api.main:app --port 8000</code>
+    </div>
+
+    <!-- ════════ ABOUT ════════ -->
+    <div v-if="view==='about'" class="about-page">
+
+      <div class="about-hero">
+        <div class="about-hero-text">
+          <h1 class="about-title">What does this do?</h1>
+          <p class="about-lead">It studies 11 years of Premier League results and uses that history to work out the chances of any fixture ending as a home win, draw, or away win, before a ball is kicked.</p>
+        </div>
+      </div>
+
+      <div class="about-grid">
+
+        <div class="about-card">
+          <div class="about-card-icon">📊</div>
+          <h3>It learned from history</h3>
+          <p>The model was fed every Premier League match from 2015 to 2025, over 4,000 games. For each one it looked at recent form, goals scored, goals conceded, and the head-to-head record between the two clubs.</p>
+        </div>
+
+        <div class="about-card">
+          <div class="about-card-icon">🔢</div>
+          <h3>It found patterns</h3>
+          <p>An algorithm went through all of that history and learned which patterns, like a team on a five-game winning run at home, tend to lead to which results. It weights recent form more heavily than old results.</p>
+        </div>
+
+        <div class="about-card">
+          <div class="about-card-icon">⚖️</div>
+          <h3>It gives chances, not verdicts</h3>
+          <p>Football is hard to call. Instead of saying "Arsenal will win", it says "58% Arsenal, 22% draw, 20% Chelsea." Three numbers that always add up to 100%. The spread tells you how open the game looks.</p>
+        </div>
+
+        <div class="about-card">
+          <div class="about-card-icon">🔄</div>
+          <h3>It stays current</h3>
+          <p>Every Monday and Thursday it pulls the latest results, retrains on the new data, and updates itself. The form figures it uses always reflect what has happened recently, not a snapshot from months ago.</p>
+        </div>
+
+      </div>
+
+      <div class="about-section">
+        <h2 class="about-section-title">Reading a prediction</h2>
+        <div class="about-explainer">
+          <div class="about-explainer-row">
+            <div class="about-explainer-label">Home Win 64%</div>
+            <div class="about-explainer-desc">In fixtures that look like this one, based on form and history, the home side wins roughly two times out of three.</div>
+          </div>
+          <div class="about-explainer-row">
+            <div class="about-explainer-label">Draw 21%</div>
+            <div class="about-explainer-desc">About one in five similar games ends level. Draws get their own number rather than being split between the two win probabilities.</div>
+          </div>
+          <div class="about-explainer-row">
+            <div class="about-explainer-label">Away Win 15%</div>
+            <div class="about-explainer-desc">Away teams win less often on average, but this number moves up or down based on how both teams have been playing lately.</div>
+          </div>
+          <div class="about-explainer-row">
+            <div class="about-explainer-label">Confidence 64%</div>
+            <div class="about-explainer-desc">This is just the highest of the three numbers. Above 70% the model is fairly sure; below 45% it sees the game as wide open.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-section">
+        <h2 class="about-section-title">What each tab does</h2>
+        <div class="about-tabs-guide">
+          <div class="about-tab-row">
+            <span class="about-tab-name">Predict</span>
+            <span class="about-tab-desc">Pick any two teams and get a live prediction with the three probabilities and recent form for both sides.</span>
+          </div>
+          <div class="about-tab-row">
+            <span class="about-tab-name">Backtesting</span>
+            <span class="about-tab-desc">See how the model performed on the 2025-26 season, games it had never seen. This is the real test of whether it holds up.</span>
+          </div>
+          <div class="about-tab-row">
+            <span class="about-tab-name">Table</span>
+            <span class="about-tab-desc">The actual Premier League standings for any season in the dataset, with European places colour coded.</span>
+          </div>
+          <div class="about-tab-row">
+            <span class="about-tab-name">Teams</span>
+            <span class="about-tab-desc">A full breakdown for any club: points per game, home and away record, goal difference, and their last five results.</span>
+          </div>
+          <div class="about-tab-row">
+            <span class="about-tab-name">Pipeline</span>
+            <span class="about-tab-desc">The technical side: how the model was built, which stats it leans on most, and how accurate it tested out.</span>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ════════ PREDICT ════════ -->
@@ -656,11 +767,11 @@
     <!-- ════════ BACKTESTING ════════ -->
     <div v-if="view==='backtest'">
       <div v-if="loadingBt" class="empty"><span class="spinner"></span></div>
-      <div v-else-if="!btData" class="empty">Validation data unavailable — run pipeline.py first.</div>
+      <div v-else-if="!btData" class="empty">Validation data unavailable - run pipeline.py first.</div>
       <div v-else>
         <div class="page-header">
           <div class="page-title">2025–26 Season Backtesting</div>
-          <div class="page-sub">Predictions made using only pre-match data — no look-ahead leakage. Model trained on 2015–16 through 2024–25.</div>
+          <div class="page-sub">Predictions made using only pre-match data - no look-ahead leakage. Model trained on 2015–16 through 2024–25.</div>
         </div>
 
         <div class="metric-row">
@@ -871,7 +982,7 @@
           </div>
           <div style="flex:1">
             <div class="team-profile-name">{{ teamData.team }}</div>
-            <div class="team-profile-sub">{{ teamData.season }} — {{ teamData.played }} games played</div>
+            <div class="team-profile-sub">{{ teamData.season }} - {{ teamData.played }} games played</div>
           </div>
           <select class="season-sel" v-model="teamSeason" @change="selectTeam(selectedTeam)">
             <option v-for="s in seasons" :key="s" :value="s">{{ s }}</option>
@@ -930,7 +1041,7 @@
       <div v-else-if="pipe">
         <div class="page-header">
           <div class="page-title">ML Pipeline</div>
-          <div class="page-sub">Real EPL match data ingested, cleaned, feature-engineered, and fed into a calibrated gradient-boosted classifier — all served via REST API.</div>
+          <div class="page-sub">Real EPL match data ingested, cleaned, feature-engineered, and fed into a calibrated gradient-boosted classifier - all served via REST API.</div>
         </div>
 
         <div class="kpi-grid">
@@ -1133,7 +1244,7 @@ function toChartY(pct) {
 
 createApp({
   setup() {
-    const view = ref('predict');
+    const view = ref('about');
     const offline = ref(false);
     const teams = ref([]);
     const seasons = ref([]);
@@ -1313,7 +1424,7 @@ createApp({
 
     function logoStyle(name) {
       const [bg, fg] = COLORS[name] || ['#334155', '#fff'];
-      // Set CSS custom properties — .club-logo uses white bg, .abbr uses team colors via vars
+      // Set CSS custom properties - .club-logo uses white bg, .abbr uses team colors via vars
       return { '--team-bg': bg, '--team-fg': fg };
     }
     function logoUrl(name)  { return LOGOS[name] || ''; }
