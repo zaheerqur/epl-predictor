@@ -218,6 +218,17 @@
     .fdot-D { background: var(--draw-bg); color: var(--draw); }
     .fdot-L { background: var(--loss-bg); color: var(--loss); }
 
+    /* ── TEAM MINI STATS (predict page preview) ── */
+    .team-mini-stats { margin-top: .75rem; padding: .875rem 1rem; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+    .tms-form { display: flex; gap: 5px; margin-bottom: .625rem; }
+    .tms-form .fdot { width: 26px; height: 26px; font-size: .62rem; border-radius: 6px; }
+    .tms-row { display: flex; align-items: center; gap: .6rem; }
+    .tms-stat { text-align: center; min-width: 28px; }
+    .tms-n { font-size: .95rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .tms-pts { color: var(--accent); }
+    .tms-l { font-size: .6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+    .tms-sep { width: 1px; height: 22px; background: var(--border); margin: 0 .1rem; }
+
     /* ── BACKTESTING ── */
     .page-header { margin-bottom: 2rem; }
     .page-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.025em; }
@@ -547,7 +558,7 @@
         <div class="about-card">
           <div class="about-card-icon">🔢</div>
           <h3>It found patterns</h3>
-          <p>An algorithm went through all of that history and learned which patterns, like a team on a five-game winning run at home, tend to lead to which results. It weights recent form more heavily than old results.</p>
+          <p>A gradient boosted classifier went through all of that history and learned which patterns, like a team on a five-game winning run at home, tend to lead to which results. It weights recent form more heavily than old results.</p>
         </div>
 
         <div class="about-card">
@@ -634,6 +645,21 @@
             <option value="" disabled>Select team…</option>
             <option v-for="t in teams" :key="t" :value="t">{{ t }}</option>
           </select>
+          <div v-if="homePreview" class="team-mini-stats">
+            <div class="tms-form">
+              <div v-for="f in homePreview.form.slice(0,5)" :key="f.date" :class="'fdot fdot-'+f.result" :title="`${f.result} ${f.goals_for}-${f.goals_against} vs ${f.opponent}`">{{ f.result }}</div>
+            </div>
+            <div class="tms-row">
+              <div class="tms-stat"><div class="tms-n" style="color:var(--win)">{{ homePreview.won }}</div><div class="tms-l">W</div></div>
+              <div class="tms-stat"><div class="tms-n" style="color:var(--draw)">{{ homePreview.drawn }}</div><div class="tms-l">D</div></div>
+              <div class="tms-stat"><div class="tms-n" style="color:var(--loss)">{{ homePreview.lost }}</div><div class="tms-l">L</div></div>
+              <div class="tms-sep"></div>
+              <div class="tms-stat"><div class="tms-n">{{ homePreview.goals_for }}</div><div class="tms-l">GF</div></div>
+              <div class="tms-stat"><div class="tms-n">{{ homePreview.goals_against }}</div><div class="tms-l">GA</div></div>
+              <div class="tms-sep"></div>
+              <div class="tms-stat"><div class="tms-n tms-pts">{{ Number(homePreview.points_per_game).toFixed(2) }}</div><div class="tms-l">PPG</div></div>
+            </div>
+          </div>
         </div>
 
         <div class="vs-block">
@@ -657,6 +683,21 @@
             <option value="" disabled>Select team…</option>
             <option v-for="t in teams" :key="t" :value="t" :disabled="t===home">{{ t }}</option>
           </select>
+          <div v-if="awayPreview" class="team-mini-stats">
+            <div class="tms-form">
+              <div v-for="f in awayPreview.form.slice(0,5)" :key="f.date" :class="'fdot fdot-'+f.result" :title="`${f.result} ${f.goals_for}-${f.goals_against} vs ${f.opponent}`">{{ f.result }}</div>
+            </div>
+            <div class="tms-row">
+              <div class="tms-stat"><div class="tms-n" style="color:var(--win)">{{ awayPreview.won }}</div><div class="tms-l">W</div></div>
+              <div class="tms-stat"><div class="tms-n" style="color:var(--draw)">{{ awayPreview.drawn }}</div><div class="tms-l">D</div></div>
+              <div class="tms-stat"><div class="tms-n" style="color:var(--loss)">{{ awayPreview.lost }}</div><div class="tms-l">L</div></div>
+              <div class="tms-sep"></div>
+              <div class="tms-stat"><div class="tms-n">{{ awayPreview.goals_for }}</div><div class="tms-l">GF</div></div>
+              <div class="tms-stat"><div class="tms-n">{{ awayPreview.goals_against }}</div><div class="tms-l">GA</div></div>
+              <div class="tms-sep"></div>
+              <div class="tms-stat"><div class="tms-n tms-pts">{{ Number(awayPreview.points_per_game).toFixed(2) }}</div><div class="tms-l">PPG</div></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1257,6 +1298,8 @@ createApp({
     const result = ref(null);
     const err = ref(null);
     const h2hPreview = ref(null);
+    const homePreview = ref(null);
+    const awayPreview = ref(null);
 
     const table = ref([]);
     const loadingTable = ref(false);
@@ -1317,11 +1360,19 @@ createApp({
     async function onTeamChange() {
       result.value = null;
       h2hPreview.value = null;
-      if (home.value && away.value && home.value !== away.value) {
-        try {
-          h2hPreview.value = await api(`/h2h/${encodeURIComponent(home.value)}/${encodeURIComponent(away.value)}`);
-        } catch { h2hPreview.value = null; }
-      }
+      homePreview.value = null;
+      awayPreview.value = null;
+      const fetches = [];
+      if (home.value) fetches.push(
+        api(`/team/${encodeURIComponent(home.value)}`).then(d => homePreview.value = d).catch(() => {})
+      );
+      if (away.value) fetches.push(
+        api(`/team/${encodeURIComponent(away.value)}`).then(d => awayPreview.value = d).catch(() => {})
+      );
+      if (home.value && away.value && home.value !== away.value) fetches.push(
+        api(`/h2h/${encodeURIComponent(home.value)}/${encodeURIComponent(away.value)}`).then(d => h2hPreview.value = d).catch(() => {})
+      );
+      await Promise.all(fetches);
     }
 
     async function goTable() {
@@ -1461,7 +1512,7 @@ createApp({
 
     return {
       view, offline, teams, seasons, season, teamSeason,
-      home, away, loading, result, err, h2hPreview,
+      home, away, loading, result, err, h2hPreview, homePreview, awayPreview,
       table, loadingTable,
       selectedTeam, teamData, loadingTeam,
       pipe, loadingPipe,

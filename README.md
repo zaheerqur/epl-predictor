@@ -2,7 +2,7 @@
 
 A full-stack machine learning application that predicts the result of any English Premier League fixture, with calibrated win/draw/loss probabilities.
 
-> **Status:** work in progress - deployment to Render and Netlify pending. Run locally using the instructions below.
+> **Live at [ml-epl-prediction.netlify.app](https://ml-epl-prediction.netlify.app/)** - API on Render, frontend on Netlify. Auto-retrains every Monday and Thursday via GitHub Actions.
 
 ---
 
@@ -83,12 +83,10 @@ The frontend auto-detects local vs production and switches between `localhost:80
 
 ---
 
-## Deployment (planned)
+## Deployment
 
-| Service | Purpose |
-|---|---|
-| Render | Docker web service - auto-deploys on push |
-| Netlify | Static frontend - proxies `/api/*` to Render |
-| GitHub Actions | Weekly cron - re-downloads match data, retrains model, commits artifacts |
-
-Config files (`render.yaml`, `netlify.toml`, `.github/workflows/update-data.yml`) are ready - deployment in progress.
+| Service | URL | Purpose |
+|---|---|---|
+| Render | `epl-predictor-6euj.onrender.com` | Docker web service, auto-deploys on push |
+| Netlify | `ml-epl-prediction.netlify.app` | Static site, proxies `/api/*` to Render |
+| GitHub Actions | - | Monday + Thursday cron: fetch data, retrain, commit artifacts |
