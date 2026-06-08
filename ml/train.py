@@ -27,9 +27,6 @@ log = logging.getLogger(__name__)
 MODELS_DIR = Path(__file__).parent.parent / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Last season held out for test/validation
-TEST_SEASONS = {"2025-26"}
-
 LABEL_ORDER = ["H", "D", "A"]   # consistent probability index
 
 
@@ -41,9 +38,10 @@ def load_data() -> pd.DataFrame:
 
 
 def split(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    train = df[~df["Season"].isin(TEST_SEASONS)].copy()
-    test  = df[df["Season"].isin(TEST_SEASONS)].copy()
-    log.info(f"Train: {len(train)} matches | Test: {len(test)} matches")
+    latest = df["Season"].max()
+    train = df[df["Season"] != latest].copy()
+    test  = df[df["Season"] == latest].copy()
+    log.info(f"Train: {len(train)} matches | Test ({latest}): {len(test)} matches")
     return train, test
 
 

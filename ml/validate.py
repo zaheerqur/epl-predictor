@@ -1,5 +1,5 @@
 """
-Pre-compute model predictions for every 2025-26 match (the held-out validation season).
+Pre-compute model predictions for every match in the held-out validation season (the latest season in the dataset).
 
 Features in features.parquet are already computed with shift(1) so they reflect
 the pre-match state — no data leakage. We simply run model.predict_proba on those rows.
@@ -19,9 +19,6 @@ log = logging.getLogger(__name__)
 ROOT       = Path(__file__).parent.parent
 MODELS_DIR = ROOT / "models"
 DATA_DIR   = ROOT / "data" / "processed"
-
-VALIDATION_SEASON = "2025-26"
-
 
 def validate() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -45,6 +42,7 @@ def validate() -> None:
 
     # ── Load feature matrix ─────────────────────────────────────────────────
     features = pd.read_parquet(DATA_DIR / "features.parquet")
+    VALIDATION_SEASON = features["Season"].max()
     val_df = features[features["Season"] == VALIDATION_SEASON].copy()
     val_df = val_df.sort_values("Date").reset_index(drop=True)
 
