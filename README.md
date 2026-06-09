@@ -2,7 +2,7 @@
 
 A full-stack machine learning application that predicts the result of any English Premier League fixture, with calibrated win/draw/loss probabilities.
 
-> **Live at [ml-epl-prediction.netlify.app](https://ml-epl-prediction.netlify.app/)** - API on Render, frontend on Netlify. Auto-retrains every Monday and Thursday via GitHub Actions.
+API on Render, frontend on Netlify. Auto-retrains every Monday and Thursday via GitHub Actions.
 
 ---
 
