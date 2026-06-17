@@ -63,6 +63,7 @@ nav { display: flex; gap: 2px; }
 }
 .nav-btn:hover { color: var(--text); background: var(--bg); }
 .nav-btn.router-link-active { color: var(--text); font-weight: 700; background: var(--bg); }
+.nav-github { display: flex; align-items: center; padding: 6px 10px; }
 
 /* Hamburger toggle — hidden on desktop */
 .nav-toggle {
