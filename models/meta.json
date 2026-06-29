@@ -205,11 +205,11 @@
       "importance": -0.00342
     },
     {
-      "feature": "h2h_hw",
+      "feature": "away_ga_roll10",
       "importance": -0.00421
     },
     {
-      "feature": "away_ga_roll10",
+      "feature": "h2h_hw",
       "importance": -0.00421
     },
     {
